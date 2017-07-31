@@ -4,13 +4,13 @@
 
 // Package simple provides a suite of simple graph implementations satisfying
 // the gonum/graph interfaces.
-package simple // import "gonum.org/v1/gonum/graph/simple"
+package simple
 
 import (
 	"math"
 
+	"github.com/graphism/simple/internal/set"
 	"gonum.org/v1/gonum/graph"
-	"gonum.org/v1/gonum/graph/internal/set"
 )
 
 // Node is a simple graph node.
