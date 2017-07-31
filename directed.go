@@ -7,59 +7,45 @@ package simple
 import (
 	"fmt"
 
-	"golang.org/x/tools/container/intsets"
-
-	"github.com/gonum/graph"
+	"gonum.org/v1/gonum/graph"
 )
 
 // DirectedGraph implements a generalized directed graph.
 type DirectedGraph struct {
-	nodes map[int]graph.Node
-	from  map[int]map[int]graph.Edge
-	to    map[int]map[int]graph.Edge
+	nodes map[int64]graph.Node
+	from  map[int64]map[int64]graph.Edge
+	to    map[int64]map[int64]graph.Edge
 
 	self, absent float64
 
-	freeIDs intsets.Sparse
-	usedIDs intsets.Sparse
+	nodeIDs idSet
 }
 
 // NewDirectedGraph returns a DirectedGraph with the specified self and absent
 // edge weight values.
 func NewDirectedGraph(self, absent float64) *DirectedGraph {
 	return &DirectedGraph{
-		nodes: make(map[int]graph.Node),
-		from:  make(map[int]map[int]graph.Edge),
-		to:    make(map[int]map[int]graph.Edge),
+		nodes: make(map[int64]graph.Node),
+		from:  make(map[int64]map[int64]graph.Edge),
+		to:    make(map[int64]map[int64]graph.Edge),
 
 		self:   self,
 		absent: absent,
+
+		nodeIDs: newIDSet(),
 	}
 }
 
-// NewNodeID returns a new unique ID for a node to be added to g. The returned ID does
-// not become a valid ID in g until it is added to g.
-func (g *DirectedGraph) NewNodeID() int {
+// NewNode returns a new unique Node to be added to g. The Node's ID does
+// not become valid in g until the Node is added to g.
+func (g *DirectedGraph) NewNode() graph.Node {
 	if len(g.nodes) == 0 {
-		return 0
+		return Node(0)
 	}
-	if len(g.nodes) == maxInt {
-		panic(fmt.Sprintf("simple: cannot allocate node: no slot"))
+	if int64(len(g.nodes)) == maxInt {
+		panic("simple: cannot allocate node: no slot")
 	}
-
-	var id int
-	if g.freeIDs.Len() != 0 && g.freeIDs.TakeMin(&id) {
-		return id
-	}
-	if id = g.usedIDs.Max(); id < maxInt {
-		return id + 1
-	}
-	for id = 0; id < maxInt; id++ {
-		if !g.usedIDs.Has(id) {
-			return id
-		}
-	}
-	panic("unreachable")
+	return Node(g.nodeIDs.newID())
 }
 
 // AddNode adds n to the graph. It panics if the added node ID matches an existing node ID.
@@ -68,11 +54,9 @@ func (g *DirectedGraph) AddNode(n graph.Node) {
 		panic(fmt.Sprintf("simple: node ID collision: %d", n.ID()))
 	}
 	g.nodes[n.ID()] = n
-	g.from[n.ID()] = make(map[int]graph.Edge)
-	g.to[n.ID()] = make(map[int]graph.Edge)
-
-	g.freeIDs.Remove(n.ID())
-	g.usedIDs.Insert(n.ID())
+	g.from[n.ID()] = make(map[int64]graph.Edge)
+	g.to[n.ID()] = make(map[int64]graph.Edge)
+	g.nodeIDs.use(n.ID())
 }
 
 // RemoveNode removes n from the graph, as well as any edges attached to it. If the node
@@ -93,8 +77,7 @@ func (g *DirectedGraph) RemoveNode(n graph.Node) {
 	}
 	delete(g.to, n.ID())
 
-	g.freeIDs.Insert(n.ID())
-	g.usedIDs.Remove(n.ID())
+	g.nodeIDs.release(n.ID())
 }
 
 // SetEdge adds e, an edge from one node to another. If the nodes do not exist, they are added.
@@ -106,6 +89,10 @@ func (g *DirectedGraph) SetEdge(e graph.Edge) {
 		to   = e.To()
 		tid  = to.ID()
 	)
+
+	if fid == tid {
+		panic("simple: adding self edge")
+	}
 
 	if !g.Has(from) {
 		g.AddNode(from)
@@ -134,7 +121,7 @@ func (g *DirectedGraph) RemoveEdge(e graph.Edge) {
 }
 
 // Node returns the node in the graph with the given ID.
-func (g *DirectedGraph) Node(id int) graph.Node {
+func (g *DirectedGraph) Node(id int64) graph.Node {
 	return g.nodes[id]
 }
 

@@ -7,57 +7,43 @@ package simple
 import (
 	"fmt"
 
-	"golang.org/x/tools/container/intsets"
-
-	"github.com/gonum/graph"
+	"gonum.org/v1/gonum/graph"
 )
 
 // UndirectedGraph implements a generalized undirected graph.
 type UndirectedGraph struct {
-	nodes map[int]graph.Node
-	edges map[int]map[int]graph.Edge
+	nodes map[int64]graph.Node
+	edges map[int64]map[int64]graph.Edge
 
 	self, absent float64
 
-	freeIDs intsets.Sparse
-	usedIDs intsets.Sparse
+	nodeIDs idSet
 }
 
 // NewUndirectedGraph returns an UndirectedGraph with the specified self and absent
 // edge weight values.
 func NewUndirectedGraph(self, absent float64) *UndirectedGraph {
 	return &UndirectedGraph{
-		nodes: make(map[int]graph.Node),
-		edges: make(map[int]map[int]graph.Edge),
+		nodes: make(map[int64]graph.Node),
+		edges: make(map[int64]map[int64]graph.Edge),
 
 		self:   self,
 		absent: absent,
+
+		nodeIDs: newIDSet(),
 	}
 }
 
-// NewNodeID returns a new unique ID for a node to be added to g. The returned ID does
-// not become a valid ID in g until it is added to g.
-func (g *UndirectedGraph) NewNodeID() int {
+// NewNode returns a new unique Node to be added to g. The Node's ID does
+// not become valid in g until the Node is added to g.
+func (g *UndirectedGraph) NewNode() graph.Node {
 	if len(g.nodes) == 0 {
-		return 0
+		return Node(0)
 	}
-	if len(g.nodes) == maxInt {
-		panic(fmt.Sprintf("simple: cannot allocate node: no slot"))
+	if int64(len(g.nodes)) == maxInt {
+		panic("simple: cannot allocate node: no slot")
 	}
-
-	var id int
-	if g.freeIDs.Len() != 0 && g.freeIDs.TakeMin(&id) {
-		return id
-	}
-	if id = g.usedIDs.Max(); id < maxInt {
-		return id + 1
-	}
-	for id = 0; id < maxInt; id++ {
-		if !g.usedIDs.Has(id) {
-			return id
-		}
-	}
-	panic("unreachable")
+	return Node(g.nodeIDs.newID())
 }
 
 // AddNode adds n to the graph. It panics if the added node ID matches an existing node ID.
@@ -66,10 +52,8 @@ func (g *UndirectedGraph) AddNode(n graph.Node) {
 		panic(fmt.Sprintf("simple: node ID collision: %d", n.ID()))
 	}
 	g.nodes[n.ID()] = n
-	g.edges[n.ID()] = make(map[int]graph.Edge)
-
-	g.freeIDs.Remove(n.ID())
-	g.usedIDs.Insert(n.ID())
+	g.edges[n.ID()] = make(map[int64]graph.Edge)
+	g.nodeIDs.use(n.ID())
 }
 
 // RemoveNode removes n from the graph, as well as any edges attached to it. If the node
@@ -85,9 +69,7 @@ func (g *UndirectedGraph) RemoveNode(n graph.Node) {
 	}
 	delete(g.edges, n.ID())
 
-	g.freeIDs.Insert(n.ID())
-	g.usedIDs.Remove(n.ID())
-
+	g.nodeIDs.release(n.ID())
 }
 
 // SetEdge adds e, an edge from one node to another. If the nodes do not exist, they are added.
@@ -99,6 +81,10 @@ func (g *UndirectedGraph) SetEdge(e graph.Edge) {
 		to   = e.To()
 		tid  = to.ID()
 	)
+
+	if fid == tid {
+		panic("simple: adding self edge")
+	}
 
 	if !g.Has(from) {
 		g.AddNode(from)
@@ -127,7 +113,7 @@ func (g *UndirectedGraph) RemoveEdge(e graph.Edge) {
 }
 
 // Node returns the node in the graph with the given ID.
-func (g *UndirectedGraph) Node(id int) graph.Node {
+func (g *UndirectedGraph) Node(id int64) graph.Node {
 	return g.nodes[id]
 }
 
@@ -153,16 +139,16 @@ func (g *UndirectedGraph) Nodes() []graph.Node {
 func (g *UndirectedGraph) Edges() []graph.Edge {
 	var edges []graph.Edge
 
-	seen := make(map[[2]int]struct{})
+	seen := make(map[[2]int64]struct{})
 	for _, u := range g.edges {
 		for _, e := range u {
 			uid := e.From().ID()
 			vid := e.To().ID()
-			if _, ok := seen[[2]int{uid, vid}]; ok {
+			if _, ok := seen[[2]int64{uid, vid}]; ok {
 				continue
 			}
-			seen[[2]int{uid, vid}] = struct{}{}
-			seen[[2]int{vid, uid}] = struct{}{}
+			seen[[2]int64{uid, vid}] = struct{}{}
+			seen[[2]int64{vid, uid}] = struct{}{}
 			edges = append(edges, e)
 		}
 	}

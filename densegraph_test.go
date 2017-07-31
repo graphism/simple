@@ -9,8 +9,8 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/gonum/graph"
-	"github.com/gonum/graph/internal/ordered"
+	"gonum.org/v1/gonum/graph"
+	"gonum.org/v1/gonum/graph/internal/ordered"
 )
 
 var (
@@ -122,7 +122,7 @@ func TestDenseLists(t *testing.T) {
 	sort.Sort(ordered.ByID(nodes))
 
 	for i, node := range dg.Nodes() {
-		if i != node.ID() {
+		if int64(i) != node.ID() {
 			t.Errorf("Node list doesn't return properly id'd nodes")
 		}
 	}
