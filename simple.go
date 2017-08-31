@@ -7,8 +7,8 @@ package simple
 import (
 	"math"
 
+	"github.com/graphism/simple/internal/set"
 	"gonum.org/v1/gonum/graph"
-	"gonum.org/v1/gonum/graph/internal/set"
 )
 
 // Node is a simple graph node.
