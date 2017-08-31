@@ -5,15 +5,17 @@
 package simple
 
 import (
-	"math"
 	"testing"
 
 	"gonum.org/v1/gonum/graph"
 )
 
-var _ graph.Graph = &DirectedGraph{}
-var _ graph.Directed = &DirectedGraph{}
-var _ graph.Directed = &DirectedGraph{}
+var (
+	directedGraph = (*DirectedGraph)(nil)
+
+	_ graph.Graph    = directedGraph
+	_ graph.Directed = directedGraph
+)
 
 // Tests Issue #27
 func TestEdgeOvercounting(t *testing.T) {
@@ -32,10 +34,10 @@ func generateDummyGraph() *DirectedGraph {
 		{0, 2},
 	}
 
-	g := NewDirectedGraph(0, math.Inf(1))
+	g := NewDirectedGraph()
 
 	for _, n := range nodes {
-		g.SetEdge(Edge{F: Node(n.srcID), T: Node(n.targetID), W: 1})
+		g.SetEdge(Edge{F: Node(n.srcID), T: Node(n.targetID)})
 	}
 
 	return g
@@ -48,7 +50,7 @@ func TestIssue123DirectedGraph(t *testing.T) {
 			t.Errorf("unexpected panic: %v", r)
 		}
 	}()
-	g := NewDirectedGraph(0, math.Inf(1))
+	g := NewDirectedGraph()
 
 	n0 := g.NewNode()
 	g.AddNode(n0)

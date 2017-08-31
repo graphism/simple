@@ -15,20 +15,15 @@ type UndirectedGraph struct {
 	nodes map[int64]graph.Node
 	edges map[int64]map[int64]graph.Edge
 
-	self, absent float64
-
 	nodeIDs idSet
 }
 
 // NewUndirectedGraph returns an UndirectedGraph with the specified self and absent
 // edge weight values.
-func NewUndirectedGraph(self, absent float64) *UndirectedGraph {
+func NewUndirectedGraph() *UndirectedGraph {
 	return &UndirectedGraph{
 		nodes: make(map[int64]graph.Node),
 		edges: make(map[int64]map[int64]graph.Edge),
-
-		self:   self,
-		absent: absent,
 
 		nodeIDs: newIDSet(),
 	}
@@ -72,6 +67,11 @@ func (g *UndirectedGraph) RemoveNode(n graph.Node) {
 	g.nodeIDs.release(n.ID())
 }
 
+// NewEdge returns a new Edge from the source to the destination node.
+func (g *UndirectedGraph) NewEdge(from, to graph.Node) graph.Edge {
+	return &Edge{F: from, T: to}
+}
+
 // SetEdge adds e, an edge from one node to another. If the nodes do not exist, they are added.
 // It will panic if the IDs of the e.From and e.To are equal.
 func (g *UndirectedGraph) SetEdge(e graph.Edge) {
@@ -81,6 +81,10 @@ func (g *UndirectedGraph) SetEdge(e graph.Edge) {
 		to   = e.To()
 		tid  = to.ID()
 	)
+
+	if fid == tid {
+		panic("simple: adding self edge")
+	}
 
 	if !g.Has(from) {
 		g.AddNode(from)
@@ -189,24 +193,6 @@ func (g *UndirectedGraph) EdgeBetween(x, y graph.Node) graph.Edge {
 	}
 
 	return g.edges[x.ID()][y.ID()]
-}
-
-// Weight returns the weight for the edge between x and y if Edge(x, y) returns a non-nil Edge.
-// If x and y are the same node or there is no joining edge between the two nodes the weight
-// value returned is either the graph's absent or self value. Weight returns true if an edge
-// exists between x and y or if x and y have the same ID, false otherwise.
-func (g *UndirectedGraph) Weight(x, y graph.Node) (w float64, ok bool) {
-	xid := x.ID()
-	yid := y.ID()
-	if xid == yid {
-		return g.self, true
-	}
-	if n, ok := g.edges[xid]; ok {
-		if e, ok := n[yid]; ok {
-			return e.Weight(), true
-		}
-	}
-	return g.absent, false
 }
 
 // Degree returns the degree of n in g.

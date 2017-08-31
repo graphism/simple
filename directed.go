@@ -16,21 +16,16 @@ type DirectedGraph struct {
 	from  map[int64]map[int64]graph.Edge
 	to    map[int64]map[int64]graph.Edge
 
-	self, absent float64
-
 	nodeIDs idSet
 }
 
 // NewDirectedGraph returns a DirectedGraph with the specified self and absent
 // edge weight values.
-func NewDirectedGraph(self, absent float64) *DirectedGraph {
+func NewDirectedGraph() *DirectedGraph {
 	return &DirectedGraph{
 		nodes: make(map[int64]graph.Node),
 		from:  make(map[int64]map[int64]graph.Edge),
 		to:    make(map[int64]map[int64]graph.Edge),
-
-		self:   self,
-		absent: absent,
 
 		nodeIDs: newIDSet(),
 	}
@@ -80,6 +75,11 @@ func (g *DirectedGraph) RemoveNode(n graph.Node) {
 	g.nodeIDs.release(n.ID())
 }
 
+// NewEdge returns a new Edge from the source to the destination node.
+func (g *DirectedGraph) NewEdge(from, to graph.Node) graph.Edge {
+	return &Edge{F: from, T: to}
+}
+
 // SetEdge adds e, an edge from one node to another. If the nodes do not exist, they are added.
 // It will panic if the IDs of the e.From and e.To are equal.
 func (g *DirectedGraph) SetEdge(e graph.Edge) {
@@ -89,6 +89,10 @@ func (g *DirectedGraph) SetEdge(e graph.Edge) {
 		to   = e.To()
 		tid  = to.ID()
 	)
+
+	if fid == tid {
+		panic("simple: adding self edge")
+	}
 
 	if !g.Has(from) {
 		g.AddNode(from)
@@ -229,24 +233,6 @@ func (g *DirectedGraph) HasEdgeFromTo(u, v graph.Node) bool {
 		return false
 	}
 	return true
-}
-
-// Weight returns the weight for the edge between x and y if Edge(x, y) returns a non-nil Edge.
-// If x and y are the same node or there is no joining edge between the two nodes the weight
-// value returned is either the graph's absent or self value. Weight returns true if an edge
-// exists between x and y or if x and y have the same ID, false otherwise.
-func (g *DirectedGraph) Weight(x, y graph.Node) (w float64, ok bool) {
-	xid := x.ID()
-	yid := y.ID()
-	if xid == yid {
-		return g.self, true
-	}
-	if to, ok := g.from[xid]; ok {
-		if e, ok := to[yid]; ok {
-			return e.Weight(), true
-		}
-	}
-	return g.absent, false
 }
 
 // Degree returns the in+out degree of n in g.
