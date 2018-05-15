@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"gonum.org/v1/gonum/graph"
-	"gonum.org/v1/gonum/graph/internal/ordered"
+	"github.com/graphism/simple/internal/ordered"
 )
 
 var (

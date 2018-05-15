@@ -8,7 +8,7 @@ import (
 	"fmt"
 
 	"gonum.org/v1/gonum/graph"
-	"gonum.org/v1/gonum/graph/internal/uid"
+	"github.com/graphism/simple/internal/uid"
 )
 
 // DirectedGraph implements a generalized directed graph.
