@@ -7,8 +7,8 @@ package simple
 import (
 	"fmt"
 
-	"gonum.org/v1/gonum/graph"
 	"github.com/graphism/simple/internal/uid"
+	"gonum.org/v1/gonum/graph"
 )
 
 // DirectedGraph implements a generalized directed graph.
@@ -90,9 +90,9 @@ func (g *DirectedGraph) SetEdge(e graph.Edge) {
 		tid  = to.ID()
 	)
 
-	if fid == tid {
-		panic("simple: adding self edge")
-	}
+	//if fid == tid {
+	//	panic("simple: adding self edge")
+	//}
 
 	if !g.Has(fid) {
 		g.AddNode(from)
