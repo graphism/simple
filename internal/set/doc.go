@@ -3,4 +3,4 @@
 // license that can be found in the LICENSE file.
 
 // Package set provides integer and graph.Node sets.
-package set // import "github.com/graphism/simple/internal/set"
+package set

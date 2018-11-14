@@ -3,4 +3,4 @@
 // license that can be found in the LICENSE file.
 
 // Package ordered provides common sort ordering types.
-package ordered // import "github.com/graphism/simple/internal/ordered"
+package ordered

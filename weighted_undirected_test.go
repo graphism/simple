@@ -11,14 +11,6 @@ import (
 	"gonum.org/v1/gonum/graph"
 )
 
-var (
-	weightedUndirectedGraph = (*WeightedUndirectedGraph)(nil)
-
-	_ graph.Graph              = weightedUndirectedGraph
-	_ graph.Undirected         = weightedUndirectedGraph
-	_ graph.WeightedUndirected = weightedUndirectedGraph
-)
-
 func TestAssertWeightedMutableNotDirected(t *testing.T) {
 	var g graph.UndirectedWeightedBuilder = NewWeightedUndirectedGraph(0, math.Inf(1))
 	if _, ok := g.(graph.Directed); ok {
@@ -39,7 +31,7 @@ func TestWeightedMaxID(t *testing.T) {
 	delete(nodes, Node(2))
 	n := g.NewNode()
 	g.AddNode(n)
-	if !g.Has(n.ID()) {
+	if g.Node(n.ID()) == nil {
 		t.Error("added node does not exist in graph")
 	}
 	if _, exists := nodes[n]; exists {

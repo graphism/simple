@@ -10,13 +10,6 @@ import (
 	"gonum.org/v1/gonum/graph"
 )
 
-var (
-	undirectedGraph = (*UndirectedGraph)(nil)
-
-	_ graph.Graph      = undirectedGraph
-	_ graph.Undirected = undirectedGraph
-)
-
 func TestAssertMutableNotDirected(t *testing.T) {
 	var g graph.UndirectedBuilder = NewUndirectedGraph()
 	if _, ok := g.(graph.Directed); ok {
@@ -37,7 +30,7 @@ func TestMaxID(t *testing.T) {
 	delete(nodes, Node(2))
 	n := g.NewNode()
 	g.AddNode(n)
-	if !g.Has(n.ID()) {
+	if g.Node(n.ID()) == nil {
 		t.Error("added node does not exist in graph")
 	}
 	if _, exists := nodes[n]; exists {
