@@ -195,9 +195,9 @@ func (g *WeightedDirectedGraph) SetWeightedEdge(e graph.WeightedEdge) {
 		tid  = to.ID()
 	)
 
-	if fid == tid {
-		panic("simple: adding self edge")
-	}
+	//if fid == tid {
+	//	panic("simple: adding self edge")
+	//}
 
 	if _, ok := g.nodes[fid]; !ok {
 		g.AddNode(from)
