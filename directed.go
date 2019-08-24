@@ -196,7 +196,7 @@ func (g *DirectedGraph) SetEdge(e graph.Edge) {
 	)
 
 	if fid == tid {
-		panic("simple: adding self edge")
+		//panic("simple: adding self edge")
 	}
 
 	if _, ok := g.nodes[fid]; !ok {

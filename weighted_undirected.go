@@ -197,7 +197,7 @@ func (g *WeightedUndirectedGraph) SetWeightedEdge(e graph.WeightedEdge) {
 	)
 
 	if fid == tid {
-		panic("simple: adding self edge")
+		//panic("simple: adding self edge")
 	}
 
 	if _, ok := g.nodes[fid]; !ok {
