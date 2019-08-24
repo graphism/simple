@@ -7,8 +7,8 @@ package simple
 import (
 	"fmt"
 
-	"github.com/graphism/simple/internal/uid"
 	"gonum.org/v1/gonum/graph"
+	"github.com/graphism/simple/internal/uid"
 	"gonum.org/v1/gonum/graph/iterator"
 )
 
@@ -49,8 +49,6 @@ func (g *DirectedGraph) AddNode(n graph.Node) {
 		panic(fmt.Sprintf("simple: node ID collision: %d", n.ID()))
 	}
 	g.nodes[n.ID()] = n
-	g.from[n.ID()] = make(map[int64]graph.Edge)
-	g.to[n.ID()] = make(map[int64]graph.Edge)
 	g.nodeIDs.Use(n.ID())
 }
 
@@ -72,13 +70,16 @@ func (g *DirectedGraph) Edges() graph.Edges {
 			edges = append(edges, e)
 		}
 	}
+	if len(edges) == 0 {
+		return graph.Empty
+	}
 	return iterator.NewOrderedEdges(edges)
 }
 
 // From returns all nodes in g that can be reached directly from n.
 func (g *DirectedGraph) From(id int64) graph.Nodes {
 	if _, ok := g.from[id]; !ok {
-		return nil
+		return graph.Empty
 	}
 
 	from := make([]graph.Node, len(g.from[id]))
@@ -86,6 +87,9 @@ func (g *DirectedGraph) From(id int64) graph.Nodes {
 	for vid := range g.from[id] {
 		from[i] = g.nodes[vid]
 		i++
+	}
+	if len(from) == 0 {
+		return graph.Empty
 	}
 	return iterator.NewOrderedNodes(from)
 }
@@ -134,7 +138,7 @@ func (g *DirectedGraph) Node(id int64) graph.Node {
 // Nodes returns all the nodes in the graph.
 func (g *DirectedGraph) Nodes() graph.Nodes {
 	if len(g.nodes) == 0 {
-		return nil
+		return graph.Empty
 	}
 	nodes := make([]graph.Node, len(g.nodes))
 	i := 0
@@ -191,9 +195,9 @@ func (g *DirectedGraph) SetEdge(e graph.Edge) {
 		tid  = to.ID()
 	)
 
-	//if fid == tid {
-	//	panic("simple: adding self edge")
-	//}
+	if fid == tid {
+		panic("simple: adding self edge")
+	}
 
 	if _, ok := g.nodes[fid]; !ok {
 		g.AddNode(from)
@@ -206,14 +210,22 @@ func (g *DirectedGraph) SetEdge(e graph.Edge) {
 		g.nodes[tid] = to
 	}
 
-	g.from[fid][tid] = e
-	g.to[tid][fid] = e
+	if fm, ok := g.from[fid]; ok {
+		fm[tid] = e
+	} else {
+		g.from[fid] = map[int64]graph.Edge{tid: e}
+	}
+	if tm, ok := g.to[tid]; ok {
+		tm[fid] = e
+	} else {
+		g.to[tid] = map[int64]graph.Edge{fid: e}
+	}
 }
 
 // To returns all nodes in g that can reach directly to n.
 func (g *DirectedGraph) To(id int64) graph.Nodes {
-	if _, ok := g.from[id]; !ok {
-		return nil
+	if _, ok := g.to[id]; !ok {
+		return graph.Empty
 	}
 
 	to := make([]graph.Node, len(g.to[id]))
@@ -221,6 +233,9 @@ func (g *DirectedGraph) To(id int64) graph.Nodes {
 	for uid := range g.to[id] {
 		to[i] = g.nodes[uid]
 		i++
+	}
+	if len(to) == 0 {
+		return graph.Empty
 	}
 	return iterator.NewOrderedNodes(to)
 }

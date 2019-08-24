@@ -7,8 +7,8 @@ package simple
 import (
 	"fmt"
 
-	"github.com/graphism/simple/internal/uid"
 	"gonum.org/v1/gonum/graph"
+	"github.com/graphism/simple/internal/uid"
 	"gonum.org/v1/gonum/graph/iterator"
 )
 
@@ -57,8 +57,6 @@ func (g *WeightedDirectedGraph) AddNode(n graph.Node) {
 		panic(fmt.Sprintf("simple: node ID collision: %d", n.ID()))
 	}
 	g.nodes[n.ID()] = n
-	g.from[n.ID()] = make(map[int64]graph.WeightedEdge)
-	g.to[n.ID()] = make(map[int64]graph.WeightedEdge)
 	g.nodeIDs.Use(n.ID())
 }
 
@@ -76,13 +74,16 @@ func (g *WeightedDirectedGraph) Edges() graph.Edges {
 			edges = append(edges, e)
 		}
 	}
+	if len(edges) == 0 {
+		return graph.Empty
+	}
 	return iterator.NewOrderedEdges(edges)
 }
 
 // From returns all nodes in g that can be reached directly from n.
 func (g *WeightedDirectedGraph) From(id int64) graph.Nodes {
 	if _, ok := g.from[id]; !ok {
-		return nil
+		return graph.Empty
 	}
 
 	from := make([]graph.Node, len(g.from[id]))
@@ -90,6 +91,9 @@ func (g *WeightedDirectedGraph) From(id int64) graph.Nodes {
 	for vid := range g.from[id] {
 		from[i] = g.nodes[vid]
 		i++
+	}
+	if len(from) == 0 {
+		return graph.Empty
 	}
 	return iterator.NewOrderedNodes(from)
 }
@@ -137,8 +141,8 @@ func (g *WeightedDirectedGraph) Node(id int64) graph.Node {
 
 // Nodes returns all the nodes in the graph.
 func (g *WeightedDirectedGraph) Nodes() graph.Nodes {
-	if len(g.from) == 0 {
-		return nil
+	if len(g.nodes) == 0 {
+		return graph.Empty
 	}
 	nodes := make([]graph.Node, len(g.nodes))
 	i := 0
@@ -195,9 +199,9 @@ func (g *WeightedDirectedGraph) SetWeightedEdge(e graph.WeightedEdge) {
 		tid  = to.ID()
 	)
 
-	//if fid == tid {
-	//	panic("simple: adding self edge")
-	//}
+	if fid == tid {
+		panic("simple: adding self edge")
+	}
 
 	if _, ok := g.nodes[fid]; !ok {
 		g.AddNode(from)
@@ -210,14 +214,22 @@ func (g *WeightedDirectedGraph) SetWeightedEdge(e graph.WeightedEdge) {
 		g.nodes[tid] = to
 	}
 
-	g.from[fid][tid] = e
-	g.to[tid][fid] = e
+	if fm, ok := g.from[fid]; ok {
+		fm[tid] = e
+	} else {
+		g.from[fid] = map[int64]graph.WeightedEdge{tid: e}
+	}
+	if tm, ok := g.to[tid]; ok {
+		tm[fid] = e
+	} else {
+		g.to[tid] = map[int64]graph.WeightedEdge{fid: e}
+	}
 }
 
 // To returns all nodes in g that can reach directly to n.
 func (g *WeightedDirectedGraph) To(id int64) graph.Nodes {
-	if _, ok := g.from[id]; !ok {
-		return nil
+	if _, ok := g.to[id]; !ok {
+		return graph.Empty
 	}
 
 	to := make([]graph.Node, len(g.to[id]))
@@ -225,6 +237,9 @@ func (g *WeightedDirectedGraph) To(id int64) graph.Nodes {
 	for uid := range g.to[id] {
 		to[i] = g.nodes[uid]
 		i++
+	}
+	if len(to) == 0 {
+		return graph.Empty
 	}
 	return iterator.NewOrderedNodes(to)
 }
@@ -256,12 +271,15 @@ func (g *WeightedDirectedGraph) WeightedEdge(uid, vid int64) graph.WeightedEdge 
 }
 
 // WeightedEdges returns all the weighted edges in the graph.
-func (g *WeightedDirectedGraph) WeightedEdges() []graph.WeightedEdge {
+func (g *WeightedDirectedGraph) WeightedEdges() graph.WeightedEdges {
 	var edges []graph.WeightedEdge
 	for _, u := range g.nodes {
 		for _, e := range g.from[u.ID()] {
 			edges = append(edges, e)
 		}
 	}
-	return edges
+	if len(edges) == 0 {
+		return graph.Empty
+	}
+	return iterator.NewOrderedWeightedEdges(edges)
 }
